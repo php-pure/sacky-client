@@ -1,10 +1,30 @@
-sacky = function (ip, port) {
+sacky = function (address, options) {
 
-    var connection = new WebSocket("ws://"+ip+":"+port);
+    var isDebug = (typeof options === "undefined") ? false : options.debug;
+    var connection = new WebSocket("ws://"+address);
 
     this.emit = function (channel, message) {
         message['channel'] = channel;
+
+        if (isDebug) {
+            console.log("Sending message to channel "+channel);
+        }
+
         connection.send(JSON.stringify(message));
+
+    }
+
+    this.destroy = function (channel) {
+
+        var destroy = {
+            '__destroy__': channel
+        }
+
+        if (isDebug) {
+            console.log("Destroying channel "+channel);
+        }
+
+        connection.send(JSON.stringify(destroy));
     }
 
     this.listen = function (channel, callback) {
@@ -13,10 +33,16 @@ sacky = function (ip, port) {
             '__listen__': channel
         };
 
-        connection.onopen = function(e) {
-            connection.send(JSON.stringify(listen));
+        if (isDebug) {
+            console.log("Listening to channel "+channel);
         }
 
+        connection.send(JSON.stringify(listen));
+
         connection.onmessage = callback;
+    }
+
+    this.on = function(callback) {
+        connection.onopen = callback;
     }
 }

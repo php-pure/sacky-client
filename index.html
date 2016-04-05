@@ -12,13 +12,15 @@
       #messages li { padding: 5px 10px; }
       #messages li:nth-child(odd) { background: #eee; }
       #idDiv {border-bottom:2px solid #aaa;font-size:16px;padding:5px;}
-      #myNameIs { border: 0; padding: 10px; width: 90%; margin-right: .5%;font-size:16px; }
+      .input-top { border: 0; padding: 10px; width: 90%; margin-right: .5%;font-size:16px; }
     </style>
   </head>
   <body>
     <div id="idDiv">
       <label for="myNameIs"><strong>Your Name:</strong></label>
-      <input type="text" id="myNameIs" />
+      <input type="text" id="myNameIs" class="input-top" />
+      <label for="channelName"><strong>Channel:</strong></label>
+      <input type="text" id="channelName" value="#general" data-old-value="#general" class="input-top" />
     </div>
 
     <ul id="messages"></ul>
@@ -48,19 +50,32 @@
         $(function() {
 
             $("#myNameIs").val(makeid());
+            var socket = new sacky("192.168.10.10:8080");
 
-            var channel = "#channel";
-            var socket = new sacky("192.168.10.10", "8080");
+            function newListener(channel) {
+                socket.listen(channel, function(e) {
+                    d = JSON.parse(e.data);
+                    $('#messages').append($('<li>').html("<strong>"+d.name+"</strong>: "+d.message));
+                });
+            }
 
-            socket.listen(channel, function(e) {
-                d = JSON.parse(e.data);
+            socket.on(function(e) {
+                newListener($("#channelName").val());
+            });
 
-                $('#messages').append($('<li>').html("<strong>"+d.name+"</strong>: "+d.message));
+            $("#channelName").on("change", function() {
+
+                // destroy the old channel
+                socket.destroy($(this).data('old-value'));
+
+                // listen to the new channel
+                newListener($(this).val());
+                $(this).data('old-value', $(this).val());
             });
 
             $("#sendBtn").on("click", function(event) {
 
-                socket.emit(channel, {
+                socket.emit($("#channelName").val(), {
                   'name': $("#myNameIs").val(),
                   'message': $('#m').val()
                 });
