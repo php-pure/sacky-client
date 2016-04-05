@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Sacky chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+      #idDiv {border-bottom:2px solid #aaa;font-size:16px;padding:5px;}
+      #myNameIs { border: 0; padding: 10px; width: 90%; margin-right: .5%;font-size:16px; }
+    </style>
+  </head>
+  <body>
+    <div id="idDiv">
+      <label for="myNameIs"><strong>Your Name:</strong></label>
+      <input type="text" id="myNameIs" />
+    </div>
+
+    <ul id="messages"></ul>
+
+    <form action="">
+      <input id="m" autocomplete="off" />
+      <button id="sendBtn">Send</button>
+    </form>
+
+
+
+    <script src="./sacky.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script>
+
+        function makeid()
+        {
+            var text = "";
+            var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+            for( var i=0; i < 5; i++ )
+                text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+            return text;
+        }
+
+        $(function() {
+
+            $("#myNameIs").val(makeid());
+
+            var channel = "#channel";
+            var socket = new sacky("192.168.10.10", "8080");
+
+            socket.listen(channel, function(e) {
+                d = JSON.parse(e.data);
+
+                $('#messages').append($('<li>').html("<strong>"+d.name+"</strong>: "+d.message));
+            });
+
+            $("#sendBtn").on("click", function(event) {
+
+                socket.emit(channel, {
+                  'name': $("#myNameIs").val(),
+                  'message': $('#m').val()
+                });
+
+                $('#m').val('');
+
+                event.preventDefault();
+            });
+        });
+    </script>
+  </body>
+</html>
