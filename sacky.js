@@ -11,33 +11,36 @@ sacky = function (address, options) {
         }
 
         connection.send(JSON.stringify(message));
-
     }
 
-    this.destroy = function (channel) {
+    this.leave = function (channel, message) {
 
-        var destroy = {
-            '__destroy__': channel
+        if (typeof message === "undefined") {
+            message = {};
         }
+
+        message['__leave__'] = channel;
 
         if (isDebug) {
-            console.log("Destroying channel "+channel);
+            console.log("Leaving channel "+channel);
         }
 
-        connection.send(JSON.stringify(destroy));
+        connection.send(JSON.stringify(message));
     }
 
-    this.listen = function (channel, callback) {
+    this.listen = function (channel, callback, message) {
 
-        var listen = {
-            '__listen__': channel
-        };
+        if (typeof message === "undefined") {
+            message = {};
+        }
+
+        message['__listen__'] = channel;
 
         if (isDebug) {
             console.log("Listening to channel "+channel);
         }
 
-        connection.send(JSON.stringify(listen));
+        connection.send(JSON.stringify(message));
 
         connection.onmessage = callback;
     }

@@ -1,90 +1,179 @@
 <!doctype html>
 <html>
-  <head>
-    <title>Sacky chat</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font: 13px Helvetica, Arial; }
-      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #messages { list-style-type: none; margin: 0; padding: 0; }
-      #messages li { padding: 5px 10px; }
-      #messages li:nth-child(odd) { background: #eee; }
-      #idDiv {border-bottom:2px solid #aaa;font-size:16px;padding:5px;}
-      .input-top { border: 0; padding: 10px; width: 90%; margin-right: .5%;font-size:16px; }
-    </style>
-  </head>
-  <body>
-    <div id="idDiv">
-      <label for="myNameIs"><strong>Your Name:</strong></label>
-      <input type="text" id="myNameIs" class="input-top" />
-      <label for="channelName"><strong>Channel:</strong></label>
-      <input type="text" id="channelName" value="#general" data-old-value="#general" class="input-top" />
-    </div>
+    <head>
+        <title>Sacky chat</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font: 13px Helvetica, Arial; }
+            form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+            form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+            form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+            #messages { list-style-type: none; margin: 0; padding: 0; }
+            #messages li { padding: 5px 10px; }
+            #messages li:nth-child(odd) { background: #eee; }
+            #idDiv {border-bottom:2px solid #aaa;font-size:16px;padding:5px;}
+            .input-top { border: 0; padding: 10px; width: 90%; margin-right: .5%;font-size:16px; }
+        </style>
+    </head>
+    <body>
+        <div id="idDiv">
+            <label for="myNameIs"><strong>Your Name:</strong></label>
+            <input type="text" id="myNameIs" class="input-top" />
+            <label for="channelName"><strong>Channel:</strong></label>
+            <input type="text" id="channelName" value="#general" data-old-value="#general" class="input-top" />
+        </div>
 
-    <ul id="messages"></ul>
+        <ul id="messages"></ul>
 
-    <form action="">
-      <input id="m" autocomplete="off" />
-      <button id="sendBtn">Send</button>
-    </form>
+        <form action="">
+            <input id="m" autocomplete="off" />
+            <button id="sendBtn">Send</button>
+        </form>
 
 
 
-    <script src="./sacky.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-    <script>
+        <script src="./sacky.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+        <script>
 
-        function makeid()
-        {
-            var text = "";
-            var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            var original = document.title;
+            var timeout;
 
-            for( var i=0; i < 5; i++ )
-                text += possible.charAt(Math.floor(Math.random() * possible.length));
+            makeid = function () {
+                var text = "";
+                var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-            return text;
-        }
+                for( var i=0; i < 5; i++ )
+                    text += possible.charAt(Math.floor(Math.random() * possible.length));
 
-        $(function() {
-
-            $("#myNameIs").val(makeid());
-            var socket = new sacky("192.168.10.10:8080");
-
-            function newListener(channel) {
-                socket.listen(channel, function(e) {
-                    d = JSON.parse(e.data);
-                    $('#messages').append($('<li>').html("<strong>"+d.name+"</strong>: "+d.message));
-                });
+                return text;
             }
 
-            socket.on(function(e) {
-                newListener($("#channelName").val());
-            });
+            flashTitle = function (newMsg, howManyTimes) {
+                function step() {
+                    document.title = (document.title == original) ? newMsg : original;
 
-            $("#channelName").on("change", function() {
+                    if (--howManyTimes > 0) {
+                        timeout = setTimeout(step, 1000);
+                    };
+                };
 
-                // destroy the old channel
-                socket.destroy($(this).data('old-value'));
+                howManyTimes = parseInt(howManyTimes);
 
-                // listen to the new channel
-                newListener($(this).val());
-                $(this).data('old-value', $(this).val());
-            });
+                if (isNaN(howManyTimes)) {
+                    howManyTimes = 5;
+                };
 
-            $("#sendBtn").on("click", function(event) {
+                cancelFlashTitle(timeout);
+                step();
+            };
 
-                socket.emit($("#channelName").val(), {
-                  'name': $("#myNameIs").val(),
-                  'message': $('#m').val()
+            cancelFlashTitle = function () {
+                clearTimeout(timeout);
+                document.title = original;
+            };
+
+
+
+            // ----------------------------------------------------------------------
+
+
+
+            $(function() {
+
+                // check if window is on focus or not
+                var $windowOnFocus = false;
+
+                $(window).bind("focus", function() {
+                    cancelFlashTitle();
+                    $windowOnFocus = true;
                 });
 
-                $('#m').val('');
+                $(window).bind("blur", function() {
+                    $windowOnFocus = false;
+                });
 
-                event.preventDefault();
+
+
+                // -------------------------------------------------------------------------
+
+
+
+                $("#myNameIs").val(makeid());
+                $("#myNameIs").data('old-value', $("#myNameIs").val());
+
+                var socket = new sacky("192.168.10.10:8080", {debug: true});
+
+                function newListener(channel) {
+
+                    socket.listen(
+                        // first parameter is the channel name
+                        channel,
+
+                        // second is the call back
+                        function(e) {
+                            data = JSON.parse(e.data);
+
+                            if ($windowOnFocus === false) {
+                                flashTitle('New message from '+data.name, 100);
+                            }
+
+                            $('#messages').append($('<li>').html("<strong>"+data.name+"</strong>: "+data.message));
+                        },
+
+                        // optional | third parameter acts like your message
+                        {
+                            'name': $("#myNameIs").val()
+                        }
+                    );
+                }
+
+                socket.on(function(e) {
+                    newListener($("#channelName").val());
+                });
+
+                $("#channelName").on("change", function() {
+
+                    // leave the old channel
+                    socket.leave(
+                        $(this).data('old-value'),
+                        {
+                            'name': $("#myNameIs").val()
+                        }
+                    );
+
+                    // listen to the new channel
+                    newListener($(this).val());
+
+                    $(this).data('old-value', $(this).val());
+                });
+
+                $("#myNameIs").on("change", function() {
+
+                    socket.leave(
+                        $("#channelName").val(),
+                        {
+                            'name': $(this).val()
+                        }
+                    );
+
+                    newListener($("#channelName").val());
+
+                    $(this).data('old-value', $(this).val());
+                });
+
+                $("#sendBtn").on("click", function(event) {
+
+                    socket.emit($("#channelName").val(), {
+                      'name': $("#myNameIs").val(),
+                      'message': $('#m').val()
+                    });
+
+                    $('#m').val('');
+
+                    event.preventDefault();
+                });
             });
-        });
-    </script>
-  </body>
+        </script>
+    </body>
 </html>
